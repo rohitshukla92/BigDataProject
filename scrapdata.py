@@ -14,6 +14,9 @@ from itertools import chain
 import nltk
 nltk.download('punkt')
 from nltk import word_tokenize,sent_tokenize
+import datetime
+import csv
+import codecs
 
 
 # Go to http://apps.twitter.com and create an app.
@@ -81,16 +84,19 @@ class StdOutListener(StreamListener):
         root_tokens=[]
         try:
             data = json.loads(HTMLParser().unescape(data))
+            #time_tweet = data['timestamp_ms']
+            #date = datetime.datetime.fromtimestamp(int(time_tweet) / 1000)
+            #new_date = str(date).split(" ") [0]
             tweet = data['text']
+            date=data['created_at']
             tokens=nltk.word_tokenize(tweet)
             for t in tokens:
-                root_tokens.append(stemmer.stem(t))
+                root_tokens.append(stemmer.stem(t))            
             for rt in root_tokens:
-                if rt in root_words:
-                    print(rt,tweet)
-            for l in tokens:
-                if l in [j for i in countries for j in i]:
-                    print(l)
+                for p in tokens:
+                    if rt in root_words and p in [j for i in countries for j in i]:
+                        location=data['user']['location']
+                        print(date,p,rt,location,tweet)     
             return True
         except BaseException, e:
             print('failed ondata',str(e))
@@ -100,8 +106,13 @@ class StdOutListener(StreamListener):
         print(status)
 
 if __name__ == '__main__':
+    global words
     l = StdOutListener()
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(track=['hunger','malnourishment','famine','starvation','underweight','underdevelopment','poverty'])
+    stream.filter(track=["hunger","malnourishment","poverty","poor","famine","underdevelopment"])
+
+
+
+
