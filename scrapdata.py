@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+from bloomfilter import BloomFilter
+from random import shuffle
 from __future__ import absolute_import, print_function
 from nltk.stem.snowball import SnowballStemmer
 from tweepy.streaming import StreamListener
@@ -71,8 +73,15 @@ countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["United States","Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District Of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"], ["Uruguay"], ["Uzbekistan"], ["Vanuatu"], ["Vatican City State (Holy See)"], ["Venezuela"], ["Viet Nam"], ["Virgin Islands (British)"], ["Virgin Islands (US)"], ["Wallis and Futuna Islands"],
 ["Western Sahara"], ["Yemen"], ["Yugoslavia"], ["Zaire"], ["Zambia"], ["Zimbabwe"]]
 
+n=20 
+p=.05
+bloomf=BloomFilter(n,p)
+print("Size of bit array:{}".format(bloomf.size))
+print("False positive probability:{}".format(bloomf.fp_prob))
+print("Number of hash functions:{}".format(bloomf.hash_count))
 root_words=[]
 for w in words:
+    bloomf.add(w)
     root_words.append(stemmer.stem(w).encode("ascii", "ignore"))
 
 class StdOutListener(StreamListener):
@@ -87,6 +96,15 @@ class StdOutListener(StreamListener):
             cleaned_tweet=preprocessor.clean(data['text'].encode("ascii", "ignore"))
             date=data['created_at']
             tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
+            for w in tokens:
+                if bloomf.check(w):
+                    if w not in words:
+                        print("'{}' is a false positive!".format(w))
+                    else:
+                        print("'{}'is probably present!".format(w))
+                else:
+                    print("'{}' is definitely not present!".format(w))
+
             with open("output123.csv", "a") as csv_file:
                 #print("asd1")
                 writer = csv.writer(csv_file, delimiter =",",quoting=csv.QUOTE_MINIMAL)
