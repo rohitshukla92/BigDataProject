@@ -16,7 +16,7 @@ nltk.download('punkt')
 from nltk import word_tokenize,sent_tokenize
 import datetime
 import csv
-import codecs
+import preprocessor 
 
 
 # Go to http://apps.twitter.com and create an app.
@@ -51,7 +51,7 @@ countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["Cambodia"], ["Cameroon"], ["Canada","Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland", "Northwest Territories", "Nova Scotia", "Nunavut", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Yukon"], 
 ["Cape Verde"], ["Cayman Islands"], ["Central African Republic"], ["Chad"], ["Chile"], 
 ["China"], ["Christmas Island"], ["Cocos (Keeling Islands)"], ["Colombia"], ["Comoros"], ["Congo"], 
-["Cook Islands"], ["Costa Rica"], ["Cote D'Ivoire (Ivory Coast)"], ["Croatia (Hrvatska"], ["Cuba"], 
+["Cook Islands"], ["Costa Rica"], ["Cote D'Ivoire (Ivory Coast)"], ["Croatia Hrvatska"], ["Cuba"], 
 ["Cyprus"], ["Czech Republic"], ["Denmark"], ["Djibouti"], ["Dominica"], ["Dominican Republic"], ["East Timor"],
 ["Ecuador"], ["Egypt"], ["El Salvador"], ["Equatorial Guinea"], ["Eritrea"], ["Estonia"], ["Ethiopia"], 
 ["Falkland Islands (Malvinas)"], ["Faroe Islands"], ["Fiji"], ["Finland"], ["France"], ["France, Metropolitan"],
@@ -59,8 +59,7 @@ countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["Germany","Baden-Württemberg", "Bayern", "Berlin", "Brandenburg", "Bremen", "Hamburg", "Hessen", "Mecklenburg-Vorpommern", "Niedersachsen", "Nordrhein-Westfalen", "Rheinland-Pfalz", "Saarland", "Sachsen", "Sachsen-Anhalt", "Schleswig-Holstein", "Thüringen"], 
 ["Ghana"], ["Gibraltar"], ["Greece"], ["Greenland"], ["Grenada"], ["Guadeloupe"], ["Guam"], ["Guatemala"], 
 ["Guinea"], ["Guinea-Bissau"], ["Guyana"], ["Haiti"], ["Heard and McDonald Islands"], ["Honduras"], 
-["Hong Kong"], ["Hungary"], 
-["Iceland"], ["India","Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jammu and Kashmir","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar","Chandigarh","Dadra and Nagar Haveli","Daman and Diu","Lakshadweep","Delhi","Puducherry"], 
+["Hong Kong"], ["Hungary"], ["Iceland"], ["India","Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jammu and Kashmir","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar","Chandigarh","Dadra and Nagar Haveli","Daman and Diu","Lakshadweep","Delhi","Puducherry"], 
 ["Indonesia"], ["Iran"], ["Iraq"], ["Ireland","Carlow", "Cavan", "Clare", "Cork", "Donegal", "Dublin", "Galway", "Kerry", "Kildare", "Kilkenny", "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath", "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Waterford", "Westmeath", "Wexford", "Wicklow"],
 ["Israel"], ["Italy"], ["Jamaica"], ["Japan"], ["Jordan"], ["Kazakhstan"], ["Kenya"], ["Kiribati"], ["Korea (North)"], ["Korea (South)"], ["Kuwait"], ["Kyrgyzstan"], ["Laos"], 
 ["Latvia"], ["Lebanon"], ["Lesotho"], ["Liberia"], ["Libya"], ["Liechtenstein"], ["Lithuania"], ["Luxembourg"], ["Macau"], ["Macedonia"], ["Madagascar"], ["Malawi"], ["Malaysia"], 
@@ -70,33 +69,48 @@ countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["Saint Kitts and Nevis"], ["Saint Lucia"], ["Saint Vincent and The Grenadines"], ["Samoa"], ["San Marino"], ["Sao Tome and Principe"], ["Saudi Arabia"], ["Senegal"], ["Seychelles"], ["Sierra Leone"], ["Singapore"], ["Slovak Republic"], ["Slovenia"], ["Solomon Islands"], ["Somalia"], ["South Africa"], ["Spain"], ["Sri Lanka"], ["St. Helena"], ["St. Pierre and Miquelon"], ["Sudan"], ["Suriname"], ["Svalbard and Jan Mayen Islands"], ["Swaziland"], 
 ["Sweden"], ["Switzerland"], ["Syria"], ["Taiwan"], ["Tajikistan"], ["Tanzania"], ["Thailand"], ["Togo"], ["Tokelau"], ["Tonga"], ["Trinidad and Tobago"], ["Tunisia"], ["Turkey"], ["Turkmenistan"], ["Turks and Caicos Islands"], ["Tuvalu"], ["US Minor Outlying Islands"], ["Uganda"], ["Ukraine"], ["United Arab Emirates"], ["United Kingdom"], 
 ["United States","Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District Of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"], ["Uruguay"], ["Uzbekistan"], ["Vanuatu"], ["Vatican City State (Holy See)"], ["Venezuela"], ["Viet Nam"], ["Virgin Islands (British)"], ["Virgin Islands (US)"], ["Wallis and Futuna Islands"],
-["Western Sahara"], ["Yemen"], ["Yugoslavia"], ["Zaire"], ["Zambia"], ["Zimbabwe"] ]
+["Western Sahara"], ["Yemen"], ["Yugoslavia"], ["Zaire"], ["Zambia"], ["Zimbabwe"]]
 
 root_words=[]
 for w in words:
-    root_words.append(stemmer.stem(w))
+    root_words.append(stemmer.stem(w).encode("ascii", "ignore"))
 
 class StdOutListener(StreamListener):
     """ A listener handles tweets that are received from the stream.
     This is a basic listener that just prints received tweets to stdout.
     """
     def on_data(self, data):
+        cnt = 0
         root_tokens=[]
         try:
             data = json.loads(HTMLParser().unescape(data))
-            #time_tweet = data['timestamp_ms']
-            #date = datetime.datetime.fromtimestamp(int(time_tweet) / 1000)
-            #new_date = str(date).split(" ") [0]
-            tweet = data['text']
+            cleaned_tweet=preprocessor.clean(data['text'].encode("ascii", "ignore"))
             date=data['created_at']
-            tokens=nltk.word_tokenize(tweet)
-            for t in tokens:
-                root_tokens.append(stemmer.stem(t))            
-            for rt in root_tokens:
-                for p in tokens:
-                    if rt in root_words and p in [j for i in countries for j in i]:
-                        location=data['user']['location']
-                        print(date,p,rt,location,tweet)     
+            tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
+            with open("output123.csv", "a") as csv_file:
+                #print("asd1")
+                writer = csv.writer(csv_file, delimiter =",",quoting=csv.QUOTE_MINIMAL)
+                #print("asd2")
+                for t in tokens:
+                    root_tokens.append(stemmer.stem(t).encode("ascii", "ignore"))
+
+                for rt in root_tokens:
+                    if rt in root_words:
+                        cnt = 1
+                        if data['user']['location'] != None:
+                            location = data['user']['location']
+                        else:
+                            location = ""
+                
+                if cnt == 1:
+                    places = ""
+                    for rt in tokens:  
+                        if rt in [j for i in countries for j in i]:
+                            places = rt
+                            print(places)
+                    if location != "" or places != "":
+                        writer.writerow([date,location,places,cleaned_tweet.encode("ascii", "ignore")])
+     
             return True
         except BaseException, e:
             print('failed ondata',str(e))
