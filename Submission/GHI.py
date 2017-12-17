@@ -68,7 +68,7 @@ def fill_x(x):
     return x
 
 GHI_rdd2 = GHI_rdd1.map(lambda x: rep_5(x)).map(lambda x: fill_x(x)).map(lambda x: conv_x(x))
-#print(GHI_rdd2.collect())
+
 #Countries whose records are there in the current dataset
 GHI_rdd2_unique_val = GHI_rdd2.map(lambda x: x[0]).filter(lambda x: x!="Country").distinct().collect()
 
@@ -136,21 +136,12 @@ def conv_listx(x):
 GHI_rdd2_broadcast=sc.broadcast(GHI_rdd2.collect())
 GHI_rdd4 = GHI_rdd4.map(lambda x: cal_x0(x,GHI_rdd2_broadcast)).map(lambda x: conv_listx(x))
 
-# #Transforming rdd to pandas dataframe for applying ML and Visulaization techniques
-# headers = GHI_rdd2.collect()[0]
-# GHI_rdd2=GHI_rdd2.filter(lambda x: x[0]!='Country')
-
-# df0 = pd.DataFrame(GHI_rdd2.collect(), columns=headers)
-
-# headers = GHI_rdd4.collect()[0]
-# GHI_rdd4=GHI_rdd4.filter(lambda x: x[0]!='Country')
-
-# df1 = pd.DataFrame(GHI_rdd4.collect(), columns=headers)
-
+#calculating Beta value
 def calc_beta(betas, X_test, y_test):
     y_pred = np.matmul(X_test, betas)[:,0]
     print("Mean Absolute Error:", mean_absolute_error(y_test, y_pred))
     
+# Ridge regression
 def RidgeRegression(X, penalty_value = 1.0, learning_rate = 0.00000000001, n_epochs = 100):
 
     #Dividing into training and test data
@@ -188,14 +179,15 @@ X_ghi=GHI_rdd2.map(lambda x: x[1:]).filter(lambda x: x[0]!="GHI1992")
 X_ghi=np.array(X_ghi.collect())
 print(X_ghi)
 
+#best value of Beta
 best_beta_val = RidgeRegression(X_ghi, 1)
 
+#session started
+#calculating for year 2024 - GHI
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 X_ghi_2024 = tf.matmul(X_ghi[:,1:], best_beta_val, name="predictions")
 s = X_ghi_2024.eval()
-print(s)
-
 #close the session to release resources
 sess.close()
 
@@ -203,27 +195,25 @@ X_ghi_df = pd.DataFrame(X_ghi)
 X_ghi_df = X_ghi_df.rename(index=str, columns={0: "GHI1992", 1: "GHI2000",2: "GHI2008",3: "GHI2015"})
 X_ghi_df['GHI2024'] = s
 
+#calculating for year 2032 - GHI
 X_ghi_2024 = np.array(X_ghi_df)
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 X_ghi_2032 = tf.matmul(X_ghi_2024[:,2:], best_beta_val, name="predictions")
 s = X_ghi_2032.eval()
-print(s)
-
 #close the session to release resources
 sess.close()
 
 X_ghi_2024 = pd.DataFrame(X_ghi_2024)
 X_ghi_2024 = X_ghi_2024.rename(index=str, columns={0: "GHI1992", 1: "GHI2000",2: "GHI2008",3: "GHI2015",4: "GHI2024"})
 X_ghi_2024['GHI2032'] = s
-X_ghi_2024
 
+#calculating for year 2040 - GHI
 X_ghi_2032 = np.array(X_ghi_2024)
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 X_ghi_2040 = tf.matmul(X_ghi_2032[:,3:], best_beta_val, name="predictions")
 s = X_ghi_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -231,24 +221,21 @@ sess.close()
 X_ghi_2032 = pd.DataFrame(X_ghi_2032)
 X_ghi_2032 = X_ghi_2032.rename(index=str, columns={0: "GHI1992", 1: "GHI2000",2: "GHI2008",3: "GHI2015",4: "GHI2024",5: "GHI2032"})
 X_ghi_2032['GHI2040'] = s
-X_ghi_2032
 
-
+#rounding off 2 decimal places
 X_ghi_2032 = X_ghi_2032.round(2)
-X_ghi_2032
 
+#For Un parameter
 X_param1=GHI_rdd4.map(lambda x: [x[1],x[5],x[9],x[13]]).filter(lambda x: x[0]!="UN9193")
 X_param1=np.array(X_param1.collect())
-print(X_param1)
 
 best_beta_val_UN1 = RidgeRegression(X_param1, 1)
 
-
+#calculating for year 2024 - UN
 sess = tf.InteractiveSession()
 best_beta_val_UN1 = np.array(best_beta_val_UN1, dtype=np.float64)
 X_param1_2024 = tf.matmul(X_param1[:,1:], best_beta_val_UN1, name="predictions")
 s = X_param1_2024.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -258,13 +245,12 @@ X_param1_df = X_param1_df.rename(index=str, columns={0: "UN9193", 1: "UN9901",2:
 s[s < 0] = 0
 X_param1_df['UN2325'] = s
 
-
+#calculating for year 2032 - UN
 X_param1_df_2024 = np.array(X_param1_df)
 sess = tf.InteractiveSession()
 best_beta_val_UN1 = np.array(best_beta_val_UN1, dtype=np.float64)
 X_param1_2032 = tf.matmul(X_param1_df_2024[:,2:], best_beta_val_UN1, name="predictions")
 s = X_param1_2032.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -274,13 +260,12 @@ X_param1_df_2024 = X_param1_df_2024.rename(index=str, columns={0: "UN9193", 1: "
 s[s < 0] = 0
 X_param1_df_2024['UN3133'] = s
 
-
+#calculating for year 2040 - UN
 X_param1_df_2032 = np.array(X_param1_df_2024)
 sess = tf.InteractiveSession()
 best_beta_val_UN1 = np.array(best_beta_val_UN1, dtype=np.float64)
 X_param1_2040 = tf.matmul(X_param1_df_2032[:,3:], best_beta_val_UN1, name="predictions")
 s = X_param1_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -290,21 +275,21 @@ X_param1_df_2032 = X_param1_df_2032.rename(index=str, columns={0: "UN9193", 1: "
 s[s < 0] = 0
 X_param1_df_2032['UN3941'] = s
 
-
 X_param1_df_2032 = X_param1_df_2032.round(2)
-X_param1_df_2032
 
+
+#for STU calculation
 X_param2=GHI_rdd4.map(lambda x: [x[2],x[6],x[10],x[14]]).filter(lambda x: x[0]!="stu9094")
 X_param2=np.array(X_param2.collect())
 print(X_param2)
-
+#Beta value
 best_beta_val_STU = RidgeRegression(X_param2, 1)
 
+#calculating for year 2024 - STU
 sess = tf.InteractiveSession()
 best_beta_val_STU = np.array(best_beta_val_STU, dtype=np.float64)
 X_param2_2024 = tf.matmul(X_param2[:,1:], best_beta_val_STU, name="predictions")
 s = X_param2_2024.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -314,12 +299,12 @@ X_param2_df = X_param2_df.rename(index=str, columns={0: "stu9094", 1: "stu9802",
 s[s < 0] = 0
 X_param2_df['stu2226'] = s
 
+#calculating 2032 - STU
 X_param2_df_2024 = np.array(X_param2_df)
 sess = tf.InteractiveSession()
 best_beta_val_STU = np.array(best_beta_val_STU, dtype=np.float64)
 X_param2_2032 = tf.matmul(X_param2_df_2024[:,2:], best_beta_val_STU, name="predictions")
 s = X_param2_2032.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -329,12 +314,12 @@ X_param2_df_2024 = X_param2_df_2024.rename(index=str, columns={0: "stu9094", 1: 
 s[s < 0] = 0
 X_param2_df_2024['stu3034'] = s
 
+#calculating 2040 - STU
 X_param2_df_2032 = np.array(X_param2_df_2024)
 sess = tf.InteractiveSession()
 best_beta_val_STU = np.array(best_beta_val_STU, dtype=np.float64)
 X_param2_2040 = tf.matmul(X_param2_df_2032[:,3:], best_beta_val_STU, name="predictions")
 s = X_param2_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -344,21 +329,21 @@ X_param2_df_2032 = X_param2_df_2032.rename(index=str, columns={0: "stu9094", 1: 
 s[s < 0] = 0
 X_param2_df_2032['stu3842'] = s
 
-
 X_param2_df_2032 = X_param2_df_2032.round(2)
-X_param2_df_2032
 
+
+#calculating WAST
 X_param3=GHI_rdd4.map(lambda x: [x[3],x[7],x[11],x[15]]).filter(lambda x: x[0]!="wast9094")
 X_param3=np.array(X_param3.collect())
 print(X_param3)
-
+#calculating Beta value
 best_beta_val_WAST = RidgeRegression(X_param3, 1)
 
+#calculating for year 2024 - WAST
 sess = tf.InteractiveSession()
 best_beta_val_WAST = np.array(best_beta_val_WAST, dtype=np.float64)
 X_param3_2024 = tf.matmul(X_param3[:,1:], best_beta_val_WAST, name="predictions")
 s = X_param3_2024.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -368,13 +353,12 @@ X_param3_df = X_param3_df.rename(index=str, columns={0: "wast9094", 1: "wast9802
 s[s < 0] = 0
 X_param3_df['wast2226'] = s
 
-
+#calculating for year 2032 - WAST
 X_param3_df_2024 = np.array(X_param3_df)
 sess = tf.InteractiveSession()
 best_beta_val_WAST = np.array(best_beta_val_WAST, dtype=np.float64)
 X_param3_2032 = tf.matmul(X_param3_df_2024[:,2:], best_beta_val_WAST, name="predictions")
 s = X_param3_2032.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -385,12 +369,12 @@ s[s < 0] = 0
 X_param3_df_2024['wast3034'] = s
 
 
+#calculating for year 2040 - WAST
 X_param3_df_2032 = np.array(X_param3_df_2024)
 sess = tf.InteractiveSession()
 best_beta_val_WAST = np.array(best_beta_val_WAST, dtype=np.float64)
 X_param3_2040 = tf.matmul(X_param3_df_2032[:,3:], best_beta_val_WAST, name="predictions")
 s = X_param3_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -400,22 +384,21 @@ X_param3_df_2032 = X_param3_df_2032.rename(index=str, columns={0: "wast9094", 1:
 s[s < 0] = 0
 X_param3_df_2032['wast3842'] = s
 
-
 X_param3_df_2032 = X_param3_df_2032.round(2)
-X_param3_df_2032
 
 
+#calculating for UM
 X_param4=GHI_rdd4.map(lambda x: [x[4],x[8],x[12],x[16]]).filter(lambda x: x[0]!="UM1992")
 X_param4=np.array(X_param4.collect())
 print(X_param4)
-
+#calculating Beta value
 best_beta_val_UM = RidgeRegression(X_param4, 1)
 
+#calculating UM value for year 2024
 sess = tf.InteractiveSession()
 best_beta_val_UM = np.array(best_beta_val_UM, dtype=np.float64)
 X_param4_2024 = tf.matmul(X_param4[:,1:], best_beta_val_UM, name="predictions")
 s = X_param4_2024.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -425,12 +408,12 @@ X_param4_df = X_param4_df.rename(index=str, columns={0: "UM1992", 1: "UM2000",2:
 s[s < 0] = 0
 X_param4_df['UM2024'] = s
 
+#calculating UM value for year 2032
 X_param4_df_2024 = np.array(X_param4_df)
 sess = tf.InteractiveSession()
 best_beta_val_UM = np.array(best_beta_val_UM, dtype=np.float64)
 X_param4_2032 = tf.matmul(X_param4_df_2024[:,2:], best_beta_val_UM, name="predictions")
 s = X_param4_2032.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -440,12 +423,12 @@ X_param4_df_2024 = X_param4_df_2024.rename(index=str, columns={0: "UM1992", 1: "
 s[s < 0] = 0
 X_param4_df_2024['UM2032'] = s
 
+#calculating UM value for year 2040
 X_param4_df_2032 = np.array(X_param4_df_2024)
 sess = tf.InteractiveSession()
 best_beta_val_UM = np.array(best_beta_val_UM, dtype=np.float64)
 X_param4_2040 = tf.matmul(X_param4_df_2032[:,3:], best_beta_val_UM, name="predictions")
 s = X_param4_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -456,8 +439,9 @@ s[s < 0] = 0
 X_param4_df_2032['UM2040'] = s
 
 X_param4_df_2032 = X_param4_df_2032.round(2)
-X_param4_df_2032
 
+
+#creating lists form dataframes for each year
 UM2024 = X_param4_df_2032['UM2024'].tolist()
 UM2032 = X_param4_df_2032['UM2032'].tolist()
 UM2040 = X_param4_df_2032['UM2040'].tolist()
@@ -474,6 +458,7 @@ GHI2024_a = X_ghi_2032['GHI2024'].tolist()
 GHI2032_a = X_ghi_2032['GHI2032'].tolist()
 GHI2040_a = X_ghi_2032['GHI2040'].tolist()
 
+#calculating GHI using UN, WAST, STU, UM
 GHI2024_b = []
 GHI2032_b = []
 GHI2040_b = []
@@ -489,6 +474,7 @@ GHI2024_b = [ round(elem, 2) for elem in GHI2024_b ]
 GHI2032_b = [ round(elem, 2) for elem in GHI2032_b ]
 GHI2040_b = [ round(elem, 2) for elem in GHI2040_b ]
 
+#CALCULATING GHI BY TAKING MEAN OF TWO VALUES
 GHI2024 = []
 GHI2032 = []
 GHI2040 = []
@@ -504,14 +490,16 @@ GHI2024 = [ round(elem, 2) for elem in GHI2024 ]
 GHI2032 = [ round(elem, 2) for elem in GHI2032 ]
 GHI2040 = [ round(elem, 2) for elem in GHI2040 ]
 
-
+#CONVERTING TO DATAFRAME
 df1 = pd.DataFrame({'GHI2024': GHI2024,'GHI2032': GHI2032,'GHI2040': GHI2040})
 
+#reading countries and countries codes
 countries = pd.DataFrame({'COUNTRY':GHI_rdd2_unique_val})
 ccodes = pd.read_csv("ccodes.csv")
 result = pd.merge(countries, ccodes, on='COUNTRY')
 result = result.drop(['GDP (BILLIONS)'],axis=1)
 
+#visualization graphs for 2024 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -546,6 +534,7 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+#visualization graphs for 2032 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -580,6 +569,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization graphs for 2040 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -614,6 +605,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization graphs for 1992 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -648,6 +641,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization graphs for 2000 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -682,6 +677,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization graphs for 2008 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],
@@ -716,6 +713,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization graphs for 2015 year
 data = [ dict(
         type = 'choropleth',
         locations = result['CODE'],

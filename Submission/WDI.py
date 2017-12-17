@@ -20,20 +20,12 @@ sc=SparkContext(conf=conf)
 #Loading WDI Dataset
 WDI_rdd1 = sc.textFile("WDI_GDP_Growth.csv").map(lambda line: line.split(",")).filter(lambda line: len(line)>1)
 
-print(WDI_rdd1.collect())
-
+#collecting countries codes
 ccode = WDI_rdd1.map(lambda x: x[1]).filter(lambda x: x!="Country Code")
 ccode_list = ccode.collect()
 
 #Filtering required data
 WDI_rdd2 = WDI_rdd1.map(lambda x: [x[0],x[29:60]])
-
-print(WDI_rdd2.collect())
-
-# headers = WDI_rdd2.collect()[0]
-# WDI_rdd2=WDI_rdd2.filter(lambda x: x[0]!='Country Name')
-
-# df0 = pd.DataFrame(WDI_rdd2.collect(), columns=headers)
 
 #Converting String Values to Integer Values
 def conv_x(x):
@@ -76,21 +68,21 @@ def calc_growth8(x):
 
 
 WDI_rdd3=WDI_rdd2.map(lambda x: conv_x(x)).map(lambda x: calc_growth8(x))
-print(WDI_rdd3.collect())
 
 #Transforming rdd to tensors for applying Machine Learning Models
 X_wdi=WDI_rdd3.filter(lambda x: x[0]!="Country Name").map(lambda x: x[1])
 X_wdi=np.array(X_wdi.collect())
-print(X_wdi)
 
+#collecting countries list
 countries_list = WDI_rdd3.filter(lambda x: x[0]!="Country Name").map(lambda x: x[0])
 countries = countries_list.collect()
-countries
 
+#calculating Beta
 def calc_beta(betas, X_test, y_test):
     y_pred = np.matmul(X_test, betas)[:,0]
     print("Mean Absolute Error:", mean_absolute_error(y_test, y_pred))
     
+#rigde Regression
 def RidgeRegression(X_wdi,penalty_value = 1.0, learning_rate = 0.000000001, n_epochs = 100):
 
     #Dividing into training and test data
@@ -121,14 +113,14 @@ def RidgeRegression(X_wdi,penalty_value = 1.0, learning_rate = 0.000000001, n_ep
     print(best_beta)
     calc_beta(best_beta, X_wdi_tf_test, Y_wdi_tf_test)
     return best_beta
-
+#best Beat value
 best_beta_val = RidgeRegression(X_wdi,.1)
 
+#calculating 2024 year value
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 WDI_2024 = tf.matmul(X_wdi[:,1:], best_beta_val, name="predictions")
 s = WDI_2024.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -137,12 +129,13 @@ X_wdi_df = pd.DataFrame(X_wdi)
 X_wdi_df = X_wdi_df.rename(index=str, columns={0: "1992", 1: "2000",2: "2008",3: "2015"})
 X_wdi_df['2024'] = s
 
+
+#calculating 2032 year value
 X_wdi_2024 = np.array(X_wdi_df)
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 WDI_2032 = tf.matmul(X_wdi_2024[:,2:], best_beta_val, name="predictions")
 s = WDI_2032.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -151,12 +144,13 @@ X_wdi_2024 = pd.DataFrame(X_wdi_2024)
 X_wdi_2024 = X_wdi_2024.rename(index=str, columns={0: "1992", 1: "2000",2: "2008",3: "2015",4: "2024"})
 X_wdi_2024['2032'] = s
 
+
+#calculating 2040 year value
 X_wdi_2032 = np.array(X_wdi_2024)
 sess = tf.InteractiveSession()
 best_beta_val = np.array(best_beta_val, dtype=np.float64)
 WDI_2040 = tf.matmul(X_wdi_2032[:,3:], best_beta_val, name="predictions")
 s = WDI_2040.eval()
-print(s)
 
 #close the session to release resources
 sess.close()
@@ -165,11 +159,14 @@ X_wdi_2032 = pd.DataFrame(X_wdi_2032)
 X_wdi_2032 = X_wdi_2032.rename(index=str, columns={0: "1992", 1: "2000",2: "2008",3: "2015",4: "2024",5:"2032"})
 X_wdi_2032['2040'] = s
 
+#rouding off to 2 decimal places
 X_wdi_2032 = X_wdi_2032.round(2)
 
+#country and country code dataframe
 countr = pd.DataFrame({"countries": countries})
 countr_code = pd.DataFrame({"ccode_list": ccode_list})
 
+#visualization for year - 1992
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -204,6 +201,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization for year - 2000
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -238,6 +237,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization for year - 2008
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -272,6 +273,8 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
+
+#visualization for year - 2015
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -307,6 +310,7 @@ fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
 
+#visualization for year - 2024
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -341,7 +345,7 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
-
+#visualization for year - 2032
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
@@ -376,7 +380,7 @@ layout = dict(
 fig = dict( data=data, layout=layout )
 iplot( fig, validate=False, filename='d3-world-map' )
 
-
+#visualization for year - 2040
 data = [ dict(
         type = 'choropleth',
         locations = countr_code['ccode_list'],
