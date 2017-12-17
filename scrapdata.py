@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+#References of the code: https://developer.twitter.com/,http://adilmoujahid.com/posts/2014/07/twitter-analytics/
 from __future__ import absolute_import, print_function
 from bloomfilter import BloomFilter
 from random import shuffle
@@ -20,19 +21,21 @@ import datetime
 import csv
 import preprocessor
 
-global words
+#Twitter Developer API authentication
+
 
 # Go to http://apps.twitter.com and create an app.
 # The consumer key and secret will be generated for you after
 consumer_key="Pr5qbY4DjgNq7sbDgCo8sK3fu"
 consumer_secret="VSJASScDTyKzddAQue2TdDB98dn4qCX22IgVTiuMBp1wPuPXeZ"
-
-# After the step above, you will be redirected to your app's page.
-# Create an access token under the the "Your access token" section
 access_token="930208627708882944-EtqVQ8YYXINx9Z7mZoGvVkKvb6Rrxl4"
 access_token_secret="IoP6Wb1628namo6s3AZWgsMtzpCgWpJjHmrj5zNSkLodj"
+
+#Root word computation
+#Tweets are in 'en' 
 stemmer=SnowballStemmer("english")
 
+#dictionary of the words made to filter the tweets from 
 words=["hunger","craving","desire","famine","greed","longing","lust","starvation","yearning","ache","appetence",
 "emptiness","esurience","famishment","gluttony","greediness","hungriness","mania","ravenous","vacancy","void","voracity",
 "want","yen","Bankruptcy","debt","deficit","difficulty","hardship","lack","scarcity","shortage","underdevelopment","abjection",
@@ -40,10 +43,11 @@ words=["hunger","craving","desire","famine","greed","longing","lust","starvation
 "impoverishment","inadequacy","Indigence","insolvency","insufficiency","meagerness","necessity","pass","paucity",
 "pauperism","Pennilessness","penury","pinch","poorness","privation","reduction","straits","vacancy","necessitousness","Drought","misery",
 "destitution","paucity","malnourished","Bulimic","emaciated","thin","sickly","looking","without","appetite","thin",
-"Poor","Destitute","impoverished","indigent","low","meager","needy","penniless","poverty-stricken",
+"Poor","Destitute","impoverished","indigent","low","meager","needy","penniless","poverty-stricken","`poverty"
 "Underprivileged","bankrupt","down-and-out","flat","insolvent","scanty","suffering","bad","off","Beggared","beggarly","dirt","poor","empty-handed",
-"flat","broke","fortuneless","impecunious","Moneyless","necessitous","pauperized","penurious","pinched","reduced","stone","strapped","unprosperous"]
+"flat","broke","fortuneless","impecunious","moneyless","necessitous","pauperized","penurious","pinched","reduced","stone","strapped","unprosperous"]
 
+#list of the countries from the which the tweets are matched for the location
 countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["Andorra"], ["Angola"], ["Anguilla"], ["Antarctica"], ["Antigua and Barbuda"],
 ["Argentina"], ["Armenia"], ["Aruba"], ["Australia","Australian Capital Territory", "New South Wales", "Northern Territory", "Queensland", "South Australia", "Tasmania", "Victoria", "Western Australia"],
@@ -74,21 +78,33 @@ countries=[["Afghanistan"], ["Albania"], ["Algeria"], ["American Samoa"],
 ["United States","Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District Of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"], ["Uruguay"], ["Uzbekistan"], ["Vanuatu"], ["Vatican City State (Holy See)"], ["Venezuela"], ["Viet Nam"], ["Virgin Islands (British)"], ["Virgin Islands (US)"], ["Wallis and Futuna Islands"],
 ["Western Sahara"], ["Yemen"], ["Yugoslavia"], ["Zaire"], ["Zambia"], ["Zimbabwe"]]
 
-n=20 
+#Bloom Filter implementation in the code
+# n is the number of words which are to be considered 
+# p is the probability of false positive
+n=40 
 p=.05
-bloomf=BloomFilter(n,p)
-print("Size of bit array:{}".format(bloomf.size))
-print("False positive probability:{}".format(bloomf.fp_prob))
-print("Number of hash functions:{}".format(bloomf.hash_count))
+bloomfilter=BloomFilter(n,p)
+print("Bit array size:{}".format(bloomfilter.size))
+print("False positive probability is:{}".format(bloomfilter.probability_false_positive))
+print("Number of hash functions used in the bloomfilter:{}".format(bloomfilter.number_of_hf))
+
+#Computation of the root words from the dictionary
+#Adding the words to the bloom filter 
+#This also ignores any non-ascii character from the tweet
 root_words=[]
+false_positive=[]
+present_word=[]
+not_present_word=[]
 for w in words:
-    bloomf.add(w)
+    bloomfilter.adding_item_bf(w)
     root_words.append(stemmer.stem(w).encode("ascii", "ignore"))
 
+
+#The stream class to stream the tweets from the public API
+#The tweets are cleaned 
+#The text in the tweet is tokenize to get the tokens
+#False positive is computed by checking it in the word
 class StdOutListener(StreamListener):
-    """ A listener handles tweets that are received from the stream.
-    This is a basic listener that just prints received tweets to stdout.
-    """
     def on_data(self, data):
         cnt = 0
         root_tokens=[]
@@ -100,21 +116,18 @@ class StdOutListener(StreamListener):
             date=data['created_at']
             tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
             for w in tokens:
-                if bloomf.check(w):
+                if bloomfilter.checking_item_bf(w):
                     if w not in words:
-                        print("'{}' is a false positive!".format(w))
+                        false_positive.append(w)
                     else:
-                        print("'{}'is probably present!".format(w))
+                        present_word.append(w)
                 else:
-                    print("'{}' is definitely not present!".format(w))
-            print("abhinav2")
-            with open("output123.csv", "a") as csv_file:
-                #print("asd1")
+                    not_present_word.append(w)                    
+            #Appending the data into a csv file 
+            with open("output123.csv", "a") as csv_file:    
                 writer = csv.writer(csv_file, delimiter =",",quoting=csv.QUOTE_MINIMAL)
-                #print("asd2")
                 for t in tokens:
                     root_tokens.append(stemmer.stem(t).encode("ascii", "ignore"))
-
                 for rt in root_tokens:
                     if rt in root_words:
                         cnt = 1
@@ -122,13 +135,11 @@ class StdOutListener(StreamListener):
                             location = data['user']['location']
                         else:
                             location = ""
-                
                 if cnt == 1:
                     places = ""
                     for rt in tokens:  
                         if rt in [j for i in countries for j in i]:
                             places = rt
-                            print(places)
                     if location != "" or places != "":
                         writer.writerow([date,location,places,cleaned_tweet.encode("ascii", "ignore")])
      
@@ -141,9 +152,15 @@ class StdOutListener(StreamListener):
         print("status: ",status)
 
 if __name__ == '__main__':
-    
-    l = StdOutListener()
-    auth = OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
-    stream = Stream(auth, l)
-    stream.filter(track=["destitute","undernourished","underfed","drought","food insecurity","desertification"])
+    #listener for the stream class 
+    listener = StdOutListener()
+    #setting the auth handler for the consumer
+    auth_handler = OAuthHandler(consumer_key, consumer_secret)
+    #setting the access tokens 
+    auth_handler.set_access_token(access_token, access_token_secret)
+    #stream object called with the authentication
+    stream_tweet = Stream(auth_handler, listener)
+    #to filter the stream with words related to hunger poverty,poor,famine
+    stream_tweet.filter(track=["hunger","malnourishment","poverty","poor","famine","underdevelopment"])
+
+
