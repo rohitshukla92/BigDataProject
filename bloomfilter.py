@@ -23,8 +23,8 @@ class BloomFilter(object):
 #Checking if the item is present in the bloom filter 
     def checking_item_bf(self, word):
         for i in range(self.number_of_hf):
-            digest = mmh3.hash(word,i)%self.size
-            if self.bucket[digest] == False:
+            a = mmh3.hash(word,i)%self.size
+            if self.bucket[a] == False:
                 return False
         return True
 
