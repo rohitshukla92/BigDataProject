@@ -8,11 +8,11 @@ from nltk.stem.snowball import SnowballStemmer
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
+from HTMLParser import HTMLParser
 import json 
 import os
 import time
 import sys
-from html.parser import HTMLParser
 from itertools import chain
 import nltk
 nltk.download('punkt')
@@ -110,9 +110,7 @@ class StdOutListener(StreamListener):
         root_tokens=[]
         try:
             data = json.loads(HTMLParser().unescape(data))
-            print("abhinav0")
-            cleaned_tweet=preprocessor.api.clean(data['text'].encode("ascii", "ignore"))
-            print("abhinav1")
+            cleaned_tweet=preprocessor.clean(data['text'].encode("ascii", "ignore"))
             date=data['created_at']
             tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
             for w in tokens:
