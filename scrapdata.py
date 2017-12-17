@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+from __future__ import absolute_import, print_function
 from bloomfilter import BloomFilter
 from random import shuffle
-from __future__ import absolute_import, print_function
 from nltk.stem.snowball import SnowballStemmer
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
@@ -11,15 +11,16 @@ import json
 import os
 import time
 import sys
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 from itertools import chain
 import nltk
 nltk.download('punkt')
 from nltk import word_tokenize,sent_tokenize
 import datetime
 import csv
-import preprocessor 
+import preprocessor
 
+global words
 
 # Go to http://apps.twitter.com and create an app.
 # The consumer key and secret will be generated for you after
@@ -93,7 +94,9 @@ class StdOutListener(StreamListener):
         root_tokens=[]
         try:
             data = json.loads(HTMLParser().unescape(data))
-            cleaned_tweet=preprocessor.clean(data['text'].encode("ascii", "ignore"))
+            print("abhinav0")
+            cleaned_tweet=preprocessor.api.clean(data['text'].encode("ascii", "ignore"))
+            print("abhinav1")
             date=data['created_at']
             tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
             for w in tokens:
@@ -104,7 +107,7 @@ class StdOutListener(StreamListener):
                         print("'{}'is probably present!".format(w))
                 else:
                     print("'{}' is definitely not present!".format(w))
-
+            print("abhinav2")
             with open("output123.csv", "a") as csv_file:
                 #print("asd1")
                 writer = csv.writer(csv_file, delimiter =",",quoting=csv.QUOTE_MINIMAL)
@@ -130,21 +133,17 @@ class StdOutListener(StreamListener):
                         writer.writerow([date,location,places,cleaned_tweet.encode("ascii", "ignore")])
      
             return True
-        except BaseException, e:
+        except BaseException as e:
             print('failed ondata',str(e))
             time.sleep(5)  
 
     def on_error(self, status):
-        print(status)
+        print("status: ",status)
 
 if __name__ == '__main__':
-    global words
+    
     l = StdOutListener()
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(track=["hunger","malnourishment","poverty","poor","famine","underdevelopment"])
-
-
-
-
+    stream.filter(track=["destitute","undernourished","underfed","drought","food insecurity","desertification"])
