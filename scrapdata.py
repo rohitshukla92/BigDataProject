@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
-
 #References of the code: https://developer.twitter.com/,http://adilmoujahid.com/posts/2014/07/twitter-analytics/
 from __future__ import absolute_import, print_function
 from bloomfilter import BloomFilter
@@ -13,16 +12,20 @@ import json
 import os
 import time
 import sys
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 from itertools import chain
 import nltk
 nltk.download('punkt')
 from nltk import word_tokenize,sent_tokenize
 import datetime
 import csv
-import preprocessor 
+import preprocessor
 
 #Twitter Developer API authentication
+
+
+# Go to http://apps.twitter.com and create an app.
+# The consumer key and secret will be generated for you after
 consumer_key="Pr5qbY4DjgNq7sbDgCo8sK3fu"
 consumer_secret="VSJASScDTyKzddAQue2TdDB98dn4qCX22IgVTiuMBp1wPuPXeZ"
 access_token="930208627708882944-EtqVQ8YYXINx9Z7mZoGvVkKvb6Rrxl4"
@@ -107,7 +110,9 @@ class StdOutListener(StreamListener):
         root_tokens=[]
         try:
             data = json.loads(HTMLParser().unescape(data))
-            cleaned_tweet=preprocessor.clean(data['text'].encode("ascii", "ignore"))
+            print("abhinav0")
+            cleaned_tweet=preprocessor.api.clean(data['text'].encode("ascii", "ignore"))
+            print("abhinav1")
             date=data['created_at']
             tokens=nltk.word_tokenize(cleaned_tweet.encode("ascii", "ignore"))
             for w in tokens:
@@ -119,7 +124,7 @@ class StdOutListener(StreamListener):
                 else:
                     not_present_word.append(w)                    
             #Appending the data into a csv file 
-            with open("output123.csv", "a") as csv_file: 
+            with open("output123.csv", "a") as csv_file:    
                 writer = csv.writer(csv_file, delimiter =",",quoting=csv.QUOTE_MINIMAL)
                 for t in tokens:
                     root_tokens.append(stemmer.stem(t).encode("ascii", "ignore"))
@@ -139,12 +144,12 @@ class StdOutListener(StreamListener):
                         writer.writerow([date,location,places,cleaned_tweet.encode("ascii", "ignore")])
      
             return True
-        except BaseException, e:
+        except BaseException as e:
             print('failed ondata',str(e))
             time.sleep(5)  
 
     def on_error(self, status):
-        print(status)
+        print("status: ",status)
 
 if __name__ == '__main__':
     #listener for the stream class 
@@ -157,7 +162,5 @@ if __name__ == '__main__':
     stream_tweet = Stream(auth_handler, listener)
     #to filter the stream with words related to hunger poverty,poor,famine
     stream_tweet.filter(track=["hunger","malnourishment","poverty","poor","famine","underdevelopment"])
-
-
 
 
