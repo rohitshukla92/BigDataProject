@@ -8,6 +8,7 @@ from plotly.offline import download_plotlyjs, init_notebook_mode, plot,iplot
 import plotly.graph_objs as go
 init_notebook_mode(connected=True)
 
+#spark context created
 conf=SparkConf().setAppName("CSE545 Project").set("spark.driver.memory", "12g").set("spark.executor.memory", "6g").set("spark.driver.maxResultSize", "6g")
 sc=SparkContext(conf=conf)
 
@@ -25,8 +26,6 @@ def reformat(x):
     return [x[3],x[0],x[1]]
 
 GST_rdd2=GST_rdd.map(lambda x: reformat(x))
-
-#print(GST_rdd2.collect())
 
 #COnverting String Values to Integer Values
 def conv_x(x):
@@ -73,8 +72,6 @@ def take_average(x):
 #call to the take_average function
 GST_rdd7=GST_rdd6.map(lambda x: take_average(x))
 
-print(GST_rdd7.collect())
-
 
 #Transorming rdd to pandas dataframes for future ML and visualizations
 headers = ["Country","Year","Average Temperature"]
@@ -84,26 +81,27 @@ GST_rdd7=GST_rdd7.sortBy(lambda x: (x[0],x[1]))
 
 df = pd.DataFrame(GST_rdd7.collect(), columns=headers)
 
-
+#reading country code 
 ccode=pd.read_csv("codes.csv")
 
+#joining country with country codes
 df1=df.join(ccode.set_index('COUNTRY'), on='Country')
 df1=df1.dropna(how="any").drop(['GDP (BILLIONS)'], axis=1)
-df1
 
-
+#getting unique countries from dataset
 country_unique = df1.Country.unique()
 
+#retriving values for 2013,1998
 df2=df1[df1['Year']== 2013]
 df3=df1[df1['Year']== 1998]
 
-
+#dropping columns country and year
 df3=df3.drop(['Country','Year'],axis=1)
 df3=df3.rename(index=str, columns={"Average Temperature" : "Avg"})
 df3=df3.join(df2.set_index('CODE'), on='CODE')
 df3=df3.drop(['Year'],axis=1)
-df3
 
+#visualizing the graph for temperature change.
 data = [ dict(
         type = 'choropleth',
         locations = df3['CODE'],
